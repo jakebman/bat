@@ -2,9 +2,10 @@
 
 use std::collections::HashMap;
 use std::fs;
+use std::env;
 use std::path::Path;
 
-use git2::{DiffOptions, IntoCString, Repository};
+use git2::{DiffOptions, IntoCString, Repository, Error};
 
 #[derive(Copy, Clone, Debug)]
 pub enum LineChange {
@@ -16,8 +17,15 @@ pub enum LineChange {
 
 pub type LineChanges = HashMap<u32, LineChange>;
 
+fn discover_git_repo(filename: &Path) -> Result<Repository, Error> {
+    if env::var("GIT_DIR").is_ok() {
+      return Repository::open_from_env();
+    }
+    return Repository::discover(filename);
+}
+
 pub fn get_git_diff(filename: &Path) -> Option<LineChanges> {
-    let repo = Repository::discover(filename).ok()?;
+    let repo = discover_git_repo(filename).ok()?;
 
     let repo_path_absolute = fs::canonicalize(repo.workdir()?).ok()?;
 
