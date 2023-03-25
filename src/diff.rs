@@ -25,9 +25,19 @@ fn discover_git_repo(filename: &Path) -> Result<Repository, Error> {
 }
 
 pub fn get_git_diff(filename: &Path) -> Option<LineChanges> {
-    let repo = discover_git_repo(filename).ok()?;
+    let env_work_tree= env::var("GIT_WORK_TREE"); // bad name
+    env::remove_var("GIT_WORK_TREE");
 
-    let repo_path_absolute = fs::canonicalize(repo.workdir()?).ok()?;
+    let jake_result = discover_git_repo(filename);
+    let repo = jake_result.ok()?;
+    let repo_work_tree = repo.workdir();
+    let work_tree = 
+    if repo_work_tree.is_some() {
+        repo_work_tree?;
+    } else {
+        env_work_tree.as_ref().map(|x| Path::new(x)).as_ref().ok()?;
+    };
+    let repo_path_absolute = fs::canonicalize(work_tree).ok()?;
 
     let filepath_absolute = fs::canonicalize(filename).ok()?;
     let filepath_relative_to_repo = filepath_absolute.strip_prefix(&repo_path_absolute).ok()?;
