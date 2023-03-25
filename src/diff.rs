@@ -31,12 +31,13 @@ pub fn get_git_diff(filename: &Path) -> Option<LineChanges> {
     let jake_result = discover_git_repo(filename);
     let repo = jake_result.ok()?;
     let repo_work_tree = repo.workdir();
-    let work_tree = 
     if repo_work_tree.is_some() {
-        repo_work_tree?;
+        return continue_with(&repo, filename, repo_work_tree?);
     } else {
-        env_work_tree.as_ref().map(|x| Path::new(x)).as_ref().ok()?;
+        return continue_with(&repo, filename, env_work_tree.as_ref().map(|x| Path::new(x)).ok()?);
     };
+}
+fn continue_with(repo:&Repository, filename: &Path, work_tree: &Path) -> Option<LineChanges> {
     let repo_path_absolute = fs::canonicalize(work_tree).ok()?;
 
     let filepath_absolute = fs::canonicalize(filename).ok()?;
@@ -47,8 +48,8 @@ pub fn get_git_diff(filename: &Path) -> Option<LineChanges> {
     diff_options.pathspec(pathspec);
     diff_options.context_lines(0);
 
-    let diff = repo
-        .diff_index_to_workdir(None, Some(&mut diff_options))
+    let index_to_work_dir = repo.diff_index_to_workdir(None, Some(&mut diff_options));
+    let diff = index_to_work_dir
         .ok()?;
 
     let mut line_changes: LineChanges = HashMap::new();
